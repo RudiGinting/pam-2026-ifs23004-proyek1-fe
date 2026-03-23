@@ -12,6 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material3.*
@@ -65,7 +66,6 @@ fun InternshipsScreen(
             isLoading = true
             authToken = authState.data.authToken
             internshipViewModel.resetAndGetAllInternships(
-                authToken ?: "",
                 searchQuery.text,
                 selectedCategory,
                 selectedLocation
@@ -94,7 +94,6 @@ fun InternshipsScreen(
     LaunchedEffect(shouldLoadMore.value) {
         if (shouldLoadMore.value && uiStateInternship.internships !is InternshipsUIState.Loading) {
             internshipViewModel.getAllInternships(
-                authToken ?: "",
                 searchQuery.text,
                 selectedCategory,
                 selectedLocation
@@ -159,7 +158,7 @@ fun InternshipsScreen(
             onSearchAction = { fetchInternshipsData() }
         )
 
-        // Filter Area - Menggunakan Row dengan horizontalScroll
+        // Filter Area
         Column(modifier = Modifier.fillMaxWidth()) {
             // Filter Kategori
             Row(
@@ -169,7 +168,6 @@ fun InternshipsScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Filter "Semua"
                 FilterChip(
                     selected = selectedCategory == null,
                     onClick = {
@@ -180,7 +178,6 @@ fun InternshipsScreen(
                     shape = RoundedCornerShape(50)
                 )
 
-                // Filter berdasarkan kategori
                 CategoryEnum.entries.forEach { category ->
                     FilterChip(
                         selected = selectedCategory == category.fullName,
@@ -202,7 +199,6 @@ fun InternshipsScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Filter "Semua"
                 FilterChip(
                     selected = selectedLocation == null,
                     onClick = {
@@ -213,7 +209,6 @@ fun InternshipsScreen(
                     shape = RoundedCornerShape(50)
                 )
 
-                // Filter berdasarkan lokasi
                 LocationEnum.entries.forEach { location ->
                     FilterChip(
                         selected = selectedLocation == location.value,
@@ -272,6 +267,29 @@ fun InternshipsScreen(
                     }
                 }
             }
+
+            // Floating Action Button (FAB)
+            FloatingActionButton(
+                onClick = {
+                    RouteHelper.to(navController, ConstHelper.RouteNames.InternshipsAdd.path)
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(24.dp),
+                shape = RoundedCornerShape(16.dp),
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                elevation = FloatingActionButtonDefaults.elevation(
+                    defaultElevation = 6.dp,
+                    pressedElevation = 8.dp
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Tambah Lowongan",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
         BottomNavComponent(navController = navController)
     }
@@ -282,6 +300,16 @@ fun InternshipItemUI(
     internship: ResponseInternshipData,
     onClick: () -> Unit
 ) {
+    // Null safety untuk semua field - PERBAIKAN UTAMA
+    val title = internship.title ?: "Tanpa Judul"
+    val status = internship.status ?: "Open"
+    val companyName = internship.companyName ?: "Perusahaan"
+    val submissionDate = internship.submissionDate ?: "-"
+    val category = internship.category ?: "-"
+    val location = internship.location ?: "-"
+    val deadline = internship.deadline ?: "-"
+    val applicantsCount = internship.applicantsCount ?: 0
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -290,62 +318,98 @@ fun InternshipItemUI(
         elevation = CardDefaults.cardElevation(2.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(16.dp)
         ) {
-            AsyncImage(
-                model = ToolsHelper.getInternshipImage(internship.id, internship.updatedAt),
-                contentDescription = internship.title,
-                placeholder = painterResource(R.drawable.img_placeholder),
-                error = painterResource(R.drawable.img_placeholder),
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentScale = ContentScale.Crop
-            )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
+            // Baris 1: Judul dan Status
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    text = internship.title,
+                    text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
 
-                Spacer(modifier = Modifier.height(4.dp))
+                val statusColor = when (status.lowercase()) {
+                    "closed" -> MaterialTheme.colorScheme.errorContainer
+                    else -> MaterialTheme.colorScheme.secondaryContainer
+                }
+                val statusTextColor = when (status.lowercase()) {
+                    "closed" -> MaterialTheme.colorScheme.onErrorContainer
+                    else -> MaterialTheme.colorScheme.onSecondaryContainer
+                }
 
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(statusColor)
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = status,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = statusTextColor
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Baris 2: Perusahaan
+            Text(
+                text = companyName,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Baris 3: Tanggal Pengajuan
+            Text(
+                text = "📅 Pengajuan: $submissionDate",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
+            )
+
+            // Baris 4: Kategori dan Lokasi
+            Text(
+                text = "$category • $location",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Baris 5: Deadline dan Jumlah Pelamar
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Text(
-                    text = "${internship.category} • ${internship.location}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "Durasi: ${internship.duration}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = "Deadline: ${internship.deadline}",
-                    style = MaterialTheme.typography.labelMedium,
+                    text = "⏰ Deadline: $deadline",
+                    style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "👥 $applicantsCount Pelamar",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -359,13 +423,21 @@ fun PreviewInternshipItemUI() {
         InternshipItemUI(
             internship = ResponseInternshipData(
                 id = "1",
+                companyName = "PT Tech Indonesia",
+                companyEmail = "tech@indonesia.com",
                 title = "Backend Developer Intern",
                 description = "",
                 category = "IT",
                 location = "Remote",
                 duration = "3 bulan",
                 requirement = "",
-                deadline = "2026-05-30"
+                benefit = "Uang saku Rp 1.500.000",
+                deadline = "2026-05-30",
+                status = "Open",
+                applicantsCount = 5,
+                submissionDate = "2026-03-21",
+                createdAt = "",
+                updatedAt = ""
             ),
             onClick = {}
         )

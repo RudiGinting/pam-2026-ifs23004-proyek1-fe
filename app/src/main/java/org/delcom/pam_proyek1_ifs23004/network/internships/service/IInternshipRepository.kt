@@ -22,10 +22,9 @@ interface IInternshipRepository {
     suspend fun putUserMePhoto(authToken: String, file: MultipartBody.Part): ResponseMessage<String?>
 
     // ==========================================
-    // Internships
+    // Internships - PERBAIKAN: Hapus authToken dari GET
     // ==========================================
     suspend fun getInternships(
-        authToken: String,
         search: String? = null,
         page: Int = 1,
         perPage: Int = 10,
@@ -34,7 +33,6 @@ interface IInternshipRepository {
     ): ResponseMessage<ResponseInternships?>
 
     suspend fun getInternshipById(
-        authToken: String,
         internshipId: String
     ): ResponseMessage<ResponseInternship?>
 
@@ -69,30 +67,19 @@ interface IInternshipRepository {
         perPage: Int = 10
     ): ResponseMessage<ResponseApplications?>
 
-    suspend fun getApplicationsByInternship(
-        authToken: String,
-        internshipId: String
-    ): ResponseMessage<ResponseApplications?>
-
     suspend fun postApplication(
         authToken: String,
         request: RequestApplication
     ): ResponseMessage<ResponseApplicationAdd?>
 
-    suspend fun putApplicationStatus(
+    suspend fun deleteApplication(
         authToken: String,
-        applicationId: String,
-        status: String
+        applicationId: String
     ): ResponseMessage<String?>
 
     suspend fun putApplicationCV(
         authToken: String,
         applicationId: String,
         file: MultipartBody.Part
-    ): ResponseMessage<String?>
-
-    suspend fun deleteApplication(
-        authToken: String,
-        applicationId: String
     ): ResponseMessage<String?>
 }

@@ -22,8 +22,8 @@ data class ResponseApplicationData(
     val status: String,
     val appliedAt: String,
     val updatedAt: String,
-    val internshipTitle: String = "", // Untuk display
-    val companyName: String = ""      // Untuk display
+    val internshipTitle: String = "",
+    val companyName: String = ""
 )
 
 @Serializable

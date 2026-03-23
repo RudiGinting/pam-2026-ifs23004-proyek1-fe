@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Delcom Technical"
+rootProject.name = "Internship Tracker"
 include(":app")
  

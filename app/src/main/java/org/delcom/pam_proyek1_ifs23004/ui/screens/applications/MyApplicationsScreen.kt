@@ -173,8 +173,9 @@ fun ApplicationItemUI(
     application: ResponseApplicationData,
     onClick: () -> Unit
 ) {
-    // Null safety untuk semua field yang mungkin null
-    val internshipTitle = application.internshipTitle ?: "Lowongan Magang"
+    // NULL SAFETY LENGKAP - PERBAIKAN UTAMA
+    val companyName = application.companyName?.takeIf { it.isNotBlank() } ?: "Perusahaan"
+    val internshipTitle = application.internshipTitle?.takeIf { it.isNotBlank() } ?: "Lowongan Magang"
     val appliedAt = application.appliedAt ?: ""
     val motivation = application.motivation ?: ""
     val status = application.status ?: "pending"
@@ -192,17 +193,19 @@ fun ApplicationItemUI(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
+            // Baris 1: Nama Perusahaan dan Status
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = internshipTitle,
-                    style = MaterialTheme.typography.titleMedium,
+                    text = companyName,
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f)
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1
                 )
 
                 val statusColor = when (status.lowercase()) {
@@ -238,16 +241,39 @@ fun ApplicationItemUI(
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Baris 2: Judul Lowongan
             Text(
-                text = "Dikirim: ${formatDisplayDate(appliedAt)}",
+                text = internshipTitle,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Baris 3: Tanggal Dikirim
+            Text(
+                text = "📅 Dikirim: ${formatDisplayDate(appliedAt)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            // Baris 4: Motivasi (preview) - PERBAIKAN UTAMA
+            val displayMotivation = if (motivation.isNotEmpty()) {
+                if (motivation.length > 100) {
+                    "${motivation.take(100)}..."
+                } else {
+                    motivation
+                }
+            } else {
+                "Tidak ada motivasi"
+            }
+
             Text(
-                text = motivation.take(100) + if (motivation.length > 100) "..." else "",
+                text = displayMotivation,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2
@@ -256,7 +282,6 @@ fun ApplicationItemUI(
     }
 }
 
-// Fungsi format tanggal yang aman
 fun formatDisplayDate(dateString: String): String {
     return try {
         if (dateString.isBlank()) return "-"

@@ -47,7 +47,7 @@ fun RippleLoading(
     ) {
         // Center logo
         Image(
-            painter = painterResource(R.drawable.img_niel),
+            painter = painterResource(R.drawable.img_p),
             contentDescription = "Logo",
             modifier = Modifier.size(imageSize)
         )

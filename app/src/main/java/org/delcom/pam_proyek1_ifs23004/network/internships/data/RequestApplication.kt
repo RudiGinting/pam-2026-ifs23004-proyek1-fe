@@ -7,8 +7,3 @@ data class RequestApplication(
     val internshipId: String,
     val motivation: String
 )
-
-@Serializable
-data class RequestApplicationStatus(
-    val status: String
-)

@@ -15,7 +15,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
@@ -54,7 +53,7 @@ fun InternshipEditScreen(
         }
 
         authToken = (uiStateAuth.auth as AuthUIState.Success).data.authToken
-        internshipViewModel.getInternshipById(authToken!!, internshipId)
+        internshipViewModel.getInternshipById(internshipId)
     }
 
     LaunchedEffect(uiStateInternship.internship) {
@@ -72,6 +71,8 @@ fun InternshipEditScreen(
     }
 
     fun onSave(
+        companyName: String,
+        companyEmail: String,
         title: String,
         description: String,
         category: String,
@@ -79,7 +80,8 @@ fun InternshipEditScreen(
         duration: String,
         requirement: String,
         benefit: String?,
-        deadline: String
+        deadline: String,
+        submissionDate: String
     ) {
         if (authToken == null) return
         isLoading = true
@@ -87,6 +89,8 @@ fun InternshipEditScreen(
         internshipViewModel.putInternship(
             authToken = authToken!!,
             internshipId = internshipId,
+            companyName = companyName,
+            companyEmail = companyEmail,
             title = title,
             description = description,
             category = category,
@@ -94,7 +98,8 @@ fun InternshipEditScreen(
             duration = duration,
             requirement = requirement,
             benefit = benefit,
-            deadline = deadline
+            deadline = deadline,
+            submissionDate = submissionDate
         )
     }
 
@@ -139,8 +144,10 @@ fun InternshipEditScreen(
 @Composable
 fun InternshipEditUI(
     internship: ResponseInternshipData,
-    onSave: (String, String, String, String, String, String, String?, String) -> Unit
+    onSave: (String, String, String, String, String, String, String, String, String?, String, String) -> Unit
 ) {
+    var companyName by remember { mutableStateOf(internship.companyName) }
+    var companyEmail by remember { mutableStateOf(internship.companyEmail) }
     var title by remember { mutableStateOf(internship.title) }
     var description by remember { mutableStateOf(internship.description) }
     var category by remember { mutableStateOf(internship.category) }
@@ -149,6 +156,7 @@ fun InternshipEditUI(
     var requirement by remember { mutableStateOf(internship.requirement) }
     var benefit by remember { mutableStateOf(internship.benefit ?: "") }
     var deadline by remember { mutableStateOf(internship.deadline) }
+    var submissionDate by remember { mutableStateOf(internship.submissionDate) }
 
     var expandedCategory by remember { mutableStateOf(false) }
     var expandedLocation by remember { mutableStateOf(false) }
@@ -171,10 +179,47 @@ fun InternshipEditUI(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Edit Informasi Lowongan",
+                    text = "Informasi Perusahaan",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
+                )
+
+                OutlinedTextField(
+                    value = companyName,
+                    onValueChange = { companyName = it },
+                    label = { Text("Nama Perusahaan") },
+                    leadingIcon = { Icon(Icons.Default.Business, contentDescription = null) },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = companyEmail,
+                    onValueChange = { companyEmail = it },
+                    label = { Text("Email Perusahaan") },
+                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Text(
+                    text = "Informasi Lowongan",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+
+                OutlinedTextField(
+                    value = submissionDate,
+                    onValueChange = { submissionDate = it },
+                    label = { Text("Tanggal Pengajuan") },
+                    leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null) },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = false,
+                    readOnly = true
                 )
 
                 OutlinedTextField(
@@ -301,7 +346,10 @@ fun InternshipEditUI(
 
         Button(
             onClick = {
-                onSave(title, description, category, location, duration, requirement, benefit.takeIf { it.isNotBlank() }, deadline)
+                onSave(
+                    companyName, companyEmail, title, description, category, location,
+                    duration, requirement, benefit.takeIf { it.isNotBlank() }, deadline, submissionDate
+                )
             },
             modifier = Modifier
                 .fillMaxWidth()

@@ -6,11 +6,9 @@ import org.delcom.pam_proyek1_ifs23004.network.internships.data.*
 import retrofit2.http.*
 
 interface InternshipApiService {
-
     // ==========================================
     // AUTH ENDPOINTS
     // ==========================================
-
     @POST("auth/register")
     suspend fun postRegister(
         @Body request: RequestAuthRegister
@@ -34,7 +32,6 @@ interface InternshipApiService {
     // ==========================================
     // USERS ENDPOINTS
     // ==========================================
-
     @GET("users/me")
     suspend fun getUserMe(
         @Header("Authorization") authToken: String
@@ -60,12 +57,10 @@ interface InternshipApiService {
     ): ResponseMessage<String?>
 
     // ==========================================
-    // INTERNSHIPS ENDPOINTS (Lowongan Magang)
+    // INTERNSHIPS ENDPOINTS - PERBAIKAN: Hapus authToken untuk GET
     // ==========================================
-
     @GET("internships")
     suspend fun getInternships(
-        @Header("Authorization") authToken: String,
         @Query("search") search: String? = null,
         @Query("page") page: Int = 1,
         @Query("perPage") perPage: Int = 10,
@@ -75,7 +70,6 @@ interface InternshipApiService {
 
     @GET("internships/{id}")
     suspend fun getInternshipById(
-        @Header("Authorization") authToken: String,
         @Path("id") internshipId: String
     ): ResponseMessage<ResponseInternship?>
 
@@ -107,20 +101,13 @@ interface InternshipApiService {
     ): ResponseMessage<String?>
 
     // ==========================================
-    // APPLICATIONS ENDPOINTS (Lamaran Magang)
+    // APPLICATIONS ENDPOINTS
     // ==========================================
-
     @GET("applications/my")
     suspend fun getMyApplications(
         @Header("Authorization") authToken: String,
         @Query("page") page: Int = 1,
         @Query("perPage") perPage: Int = 10
-    ): ResponseMessage<ResponseApplications?>
-
-    @GET("applications/internship/{internshipId}")
-    suspend fun getApplicationsByInternship(
-        @Header("Authorization") authToken: String,
-        @Path("internshipId") internshipId: String
     ): ResponseMessage<ResponseApplications?>
 
     @POST("applications")
@@ -129,14 +116,6 @@ interface InternshipApiService {
         @Body request: RequestApplication
     ): ResponseMessage<ResponseApplicationAdd?>
 
-    @PUT("applications/{id}/status")
-    suspend fun putApplicationStatus(
-        @Header("Authorization") authToken: String,
-        @Path("id") applicationId: String,
-        @Body request: RequestApplicationStatus
-    ): ResponseMessage<String?>
-
-    @Multipart
     @PUT("applications/{id}/cv")
     suspend fun putApplicationCV(
         @Header("Authorization") authToken: String,

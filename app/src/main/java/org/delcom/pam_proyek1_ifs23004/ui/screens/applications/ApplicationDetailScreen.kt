@@ -1,143 +1,165 @@
-package org.delcom.pam_proyek1_ifs23004.ui.screens.applications
+package org.delcom.pam_proyek1_ifs23004.ui.screens
 
-import android.net.Uri
-import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Work
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import org.delcom.pam_proyek1_ifs23004.helper.ConstHelper
 import org.delcom.pam_proyek1_ifs23004.helper.RouteHelper
-import org.delcom.pam_proyek1_ifs23004.helper.ToolsHelper
-import org.delcom.pam_proyek1_ifs23004.network.internships.data.ResponseApplicationData
-import org.delcom.pam_proyek1_ifs23004.network.internships.data.ResponseInternshipData
-import org.delcom.pam_proyek1_ifs23004.ui.components.*
+import org.delcom.pam_proyek1_ifs23004.ui.components.BottomNavComponent
+import org.delcom.pam_proyek1_ifs23004.ui.components.LoadingUI
+import org.delcom.pam_proyek1_ifs23004.ui.components.StatusCard
+import org.delcom.pam_proyek1_ifs23004.ui.components.TopAppBarComponent
+import org.delcom.pam_proyek1_ifs23004.ui.components.TopAppBarMenuItem
+import org.delcom.pam_proyek1_ifs23004.ui.theme.DelcomTheme
 import org.delcom.pam_proyek1_ifs23004.ui.viewmodels.*
 
+data class ResponseInternshipStatsData(
+    val total: Long = 0,
+    val pending: Long = 0,
+    val accepted: Long = 0,
+    val rejected: Long = 0
+)
+
 @Composable
-fun ApplicationDetailScreen(
+fun HomeScreen(
     navController: NavHostController,
-    snackbarHost: SnackbarHostState,
     authViewModel: AuthViewModel,
-    internshipViewModel: InternshipViewModel,
-    applicationId: String
+    internshipViewModel: InternshipViewModel
 ) {
     val uiStateAuth by authViewModel.uiState.collectAsState()
     val uiStateInternship by internshipViewModel.uiState.collectAsState()
 
     var isLoading by remember { mutableStateOf(false) }
-    var application by remember { mutableStateOf<ResponseApplicationData?>(null) }
-    var internship by remember { mutableStateOf<ResponseInternshipData?>(null) }
+    var isFreshToken by remember { mutableStateOf(false) }
     var authToken by remember { mutableStateOf<String?>(null) }
-    var showDeleteDialog by remember { mutableStateOf(false) }
 
-    val context = LocalContext.current
+    val statsData = remember { mutableStateOf(ResponseInternshipStatsData(0, 0, 0, 0)) }
 
     LaunchedEffect(Unit) {
+        if (isLoading) return@LaunchedEffect
+
         isLoading = true
+        isFreshToken = true
+        uiStateAuth.authLogout = AuthLogoutUIState.Loading
+        authViewModel.loadTokenFromPreferences()
+    }
 
-        if (uiStateAuth.auth !is AuthUIState.Success) {
-            RouteHelper.to(navController, ConstHelper.RouteNames.Home.path, true)
-            return@LaunchedEffect
+    LaunchedEffect(authToken) {
+        authToken?.let {
+            internshipViewModel.getProfile(it)
+            internshipViewModel.getMyApplications(it, 1, 100)
         }
-
-        authToken = (uiStateAuth.auth as AuthUIState.Success).data.authToken
-        internshipViewModel.getMyApplications(authToken!!, 1, 100)
     }
 
     LaunchedEffect(uiStateInternship.myApplications) {
         when (val state = uiStateInternship.myApplications) {
             is ApplicationsUIState.Success -> {
-                val foundApplication = state.data.find { it.id == applicationId }
-                if (foundApplication != null) {
-                    application = foundApplication
-                    internshipViewModel.getInternshipById(authToken!!, foundApplication.internshipId)
-                } else {
-                    Toast.makeText(context, "Lamaran tidak ditemukan", Toast.LENGTH_SHORT).show()
-                    RouteHelper.back(navController)
+                val applications = state.data
+                val total = applications.size.toLong()
+                val pending = applications.count { it.status == "pending" }.toLong()
+                val accepted = applications.count { it.status == "accepted" }.toLong()
+                val rejected = applications.count { it.status == "rejected" }.toLong()
+                statsData.value = ResponseInternshipStatsData(total, pending, accepted, rejected)
+            }
+            else -> {}
+        }
+    }
+
+    fun onLogout(token: String) {
+        isLoading = true
+        authViewModel.logout(token)
+    }
+
+    LaunchedEffect(uiStateAuth.auth) {
+        if (!isLoading) {
+            return@LaunchedEffect
+        }
+
+        if (uiStateAuth.auth !is AuthUIState.Loading) {
+            if (uiStateAuth.auth is AuthUIState.Success) {
+                if (isFreshToken) {
+                    val dataToken = (uiStateAuth.auth as AuthUIState.Success).data
+                    authViewModel.refreshToken(dataToken.authToken, dataToken.refreshToken)
+                    isFreshToken = false
+                } else if (uiStateAuth.authRefreshToken is AuthActionUIState.Success) {
+                    val newToken = (uiStateAuth.auth as AuthUIState.Success).data.authToken
+                    if (authToken != newToken) {
+                        authToken = (uiStateAuth.auth as AuthUIState.Success).data.authToken
+                    }
                     isLoading = false
                 }
+            } else {
+                onLogout("")
             }
-            is ApplicationsUIState.Error -> {
-                Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
-                RouteHelper.back(navController)
-                isLoading = false
-            }
-            else -> {}
         }
     }
 
-    LaunchedEffect(uiStateInternship.internship) {
-        when (val state = uiStateInternship.internship) {
-            is InternshipUIState.Success -> {
-                internship = state.data
-                isLoading = false
-            }
-            is InternshipUIState.Error -> {
-                isLoading = false
-            }
-            else -> {}
+    LaunchedEffect(uiStateAuth.authLogout) {
+        if (uiStateAuth.authLogout !is AuthLogoutUIState.Loading) {
+            RouteHelper.to(navController, ConstHelper.RouteNames.AuthLogin.path, true)
         }
     }
 
-    fun onDelete() {
-        if (authToken == null) return
-        isLoading = true
-        internshipViewModel.deleteApplication(authToken!!, applicationId)
-    }
-
-    LaunchedEffect(uiStateInternship.applicationDelete) {
-        when (val state = uiStateInternship.applicationDelete) {
-            is InternshipActionUIState.Success -> {
-                Toast.makeText(context, "Lamaran berhasil dibatalkan", Toast.LENGTH_SHORT).show()
-                RouteHelper.to(navController, ConstHelper.RouteNames.MyApplications.path, true)
-                isLoading = false
-            }
-            is InternshipActionUIState.Error -> {
-                Toast.makeText(context, state.message, Toast.LENGTH_SHORT).show()
-                isLoading = false
-            }
-            else -> {}
-        }
-    }
-
-    if (isLoading || application == null) {
+    if (isLoading || authToken == null || isFreshToken) {
         LoadingUI()
         return
     }
 
-    val safeApplication = application!!
-
-    val menuItems = if (safeApplication.status == "pending") {
-        listOf(
-            TopAppBarMenuItem(
-                text = "Batalkan Lamaran",
-                icon = Icons.Filled.Delete,
-                route = null,
-                onClick = { showDeleteDialog = true },  // PERBAIKAN: hanya set showDeleteDialog = true
-                isDestructive = true
-            )
+    val menuItems = listOf(
+        TopAppBarMenuItem(
+            text = "Profile",
+            icon = Icons.Filled.Person,
+            route = ConstHelper.RouteNames.Profile.path
+        ),
+        TopAppBarMenuItem(
+            text = "Logout",
+            icon = Icons.AutoMirrored.Filled.Logout,
+            route = null,
+            onClick = { onLogout(authToken ?: "") }
         )
-    } else {
-        emptyList()
-    }
+    )
 
     Column(
         modifier = Modifier
@@ -146,318 +168,138 @@ fun ApplicationDetailScreen(
     ) {
         TopAppBarComponent(
             navController = navController,
-            title = "Detail Lamaran",
-            showBackButton = true,
+            title = "Home",
+            showBackButton = false,
             customMenuItems = menuItems
         )
         Box(modifier = Modifier.weight(1f)) {
-            ApplicationDetailUI(
-                application = safeApplication,
-                internship = internship,
-                onViewInternship = {
-                    RouteHelper.to(
-                        navController,
-                        ConstHelper.RouteNames.InternshipsDetail.path
-                            .replace("{internshipId}", safeApplication.internshipId)
-                    )
+            HomeUI(
+                statsState = statsData.value,
+                profileState = uiStateInternship.profile,
+                onNavigateToInternships = {
+                    RouteHelper.to(navController, ConstHelper.RouteNames.Internships.path)
+                },
+                onNavigateToMyApplications = {
+                    RouteHelper.to(navController, ConstHelper.RouteNames.MyApplications.path)
                 }
             )
         }
         BottomNavComponent(navController = navController)
     }
-
-    // Dialog Konfirmasi Batal
-    if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Batalkan Lamaran") },
-            text = { Text("Apakah Anda yakin ingin membatalkan lamaran ini?") },
-            confirmButton = {
-                Button(
-                    onClick = { onDelete() },  // PERBAIKAN: panggil onDelete() di dalam lambda
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Text("Ya, Batalkan")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Tidak")
-                }
-            }
-        )
-    }
 }
 
 @Composable
-fun ApplicationDetailUI(
-    application: ResponseApplicationData,
-    internship: ResponseInternshipData?,
-    onViewInternship: () -> Unit
+fun HomeUI(
+    statsState: ResponseInternshipStatsData,
+    profileState: ProfileUIState,
+    onNavigateToInternships: () -> Unit,
+    onNavigateToMyApplications: () -> Unit
 ) {
+    val scrollState = rememberScrollState()
+
+    val userName = when (profileState) {
+        is ProfileUIState.Success -> profileState.data.name
+        else -> "Pengguna"
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .verticalScroll(scrollState)
+            .padding(16.dp)
     ) {
-        // Header dengan Status
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(140.dp)
-                .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
-                .background(
-                    when (application.status.lowercase()) {
-                        "accepted" -> MaterialTheme.colorScheme.secondaryContainer
-                        "rejected" -> MaterialTheme.colorScheme.errorContainer
-                        else -> MaterialTheme.colorScheme.primaryContainer
-                    }
-                ),
-            contentAlignment = Alignment.Center
+        Text(
+            text = "Halo, $userName! 👋",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(bottom = 4.dp)
+        )
+        Text(
+            text = "Temukan lowongan magang terbaik untukmu.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 24.dp)
+        )
+
+        // STATISTIK LAMARAN
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    imageVector = when (application.status.lowercase()) {
-                        "accepted" -> Icons.Filled.CheckCircle
-                        "rejected" -> Icons.Filled.Cancel
-                        else -> Icons.Filled.Schedule
-                    },
-                    contentDescription = null,
-                    modifier = Modifier.size(56.dp),
-                    tint = when (application.status.lowercase()) {
-                        "accepted" -> MaterialTheme.colorScheme.onSecondaryContainer
-                        "rejected" -> MaterialTheme.colorScheme.onErrorContainer
-                        else -> MaterialTheme.colorScheme.onPrimaryContainer
-                    }
-                )
-                Spacer(modifier = Modifier.height(8.dp))
+            Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = when (application.status.lowercase()) {
-                        "accepted" -> "Lamaran Diterima!"
-                        "rejected" -> "Lamaran Ditolak"
-                        else -> "Lamaran Diproses"
-                    },
-                    style = MaterialTheme.typography.headlineSmall,
+                    text = "📊 Statistik Lamaran Saya",
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = when (application.status.lowercase()) {
-                        "accepted" -> MaterialTheme.colorScheme.onSecondaryContainer
-                        "rejected" -> MaterialTheme.colorScheme.onErrorContainer
-                        else -> MaterialTheme.colorScheme.onPrimaryContainer
-                    }
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(bottom = 16.dp)
                 )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    StatusCard(
+                        title = "Total Lamaran",
+                        value = statsState.total.toString(),
+                        icon = Icons.Filled.Work,
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatusCard(
+                        title = "Pending",
+                        value = statsState.pending.toString(),
+                        icon = Icons.Default.Schedule,
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatusCard(
+                        title = "Diterima",
+                        value = statsState.accepted.toString(),
+                        icon = Icons.Default.CheckCircle,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
             }
         }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Informasi Lowongan
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .clickable { onViewInternship() },
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(2.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        // AKSI CEPAT
+        Text(
+            text = "Aksi Cepat",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
+            Button(
+                onClick = onNavigateToInternships,
+                modifier = Modifier.weight(1f).height(50.dp),
+                shape = MaterialTheme.shapes.medium,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Informasi Lowongan",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Icon(
-                        imageVector = Icons.Filled.ArrowForward,
-                        contentDescription = "Lihat Detail",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = internship?.title ?: "Loading...",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                if (internship != null) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // PERBAIKAN: Ganti Chip dengan AssistChip
-                        AssistChip(
-                            onClick = {},
-                            label = { Text(internship!!.category) },
-                            colors = AssistChipDefaults.assistChipColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                labelColor = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                        )
-                        AssistChip(
-                            onClick = {},
-                            label = { Text(internship!!.location) },
-                            colors = AssistChipDefaults.assistChipColors(
-                                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                                labelColor = MaterialTheme.colorScheme.onTertiaryContainer
-                            )
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "Durasi: ${internship!!.duration}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Icon(Icons.Filled.Work, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Cari Lowongan", fontWeight = FontWeight.SemiBold)
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Detail Lamaran
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            shape = RoundedCornerShape(16.dp),
-            elevation = CardDefaults.cardElevation(2.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
-            ) {
-                Text(
-                    text = "Detail Lamaran",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(bottom = 12.dp)
-                )
-
-                DetailRow(
-                    label = "Tanggal Dikirim",
-                    value = formatDate(application.appliedAt)
-                )
-
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 12.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
-                )
-
-                Text(
-                    text = "Motivasi",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = application.motivation,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                if (!application.cvUrl.isNullOrBlank()) {
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 12.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
-                    )
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.AttachFile,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "CV Terlampir",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-            }
-        }
-
-        // Catatan untuk status lamaran
-        if (application.status == "rejected") {
-            Spacer(modifier = Modifier.height(16.dp))
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
+            Button(
+                onClick = onNavigateToMyApplications,
+                modifier = Modifier.weight(1f).height(50.dp),
+                shape = MaterialTheme.shapes.medium,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary
                 )
             ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Info,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "Lamaran Anda tidak diterima. Jangan berkecil hati, coba lamar lowongan lainnya!",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                }
-            }
-        }
-
-        if (application.status == "accepted") {
-            Spacer(modifier = Modifier.height(16.dp))
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                )
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.CheckCircle,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = "Selamat! Lamaran Anda diterima. Perusahaan akan menghubungi Anda untuk tahap selanjutnya.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                }
+                Text("Lihat Lamaran", fontWeight = FontWeight.SemiBold)
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(20.dp))
             }
         }
 
@@ -465,50 +307,15 @@ fun ApplicationDetailUI(
     }
 }
 
+@Preview(showBackground = true, name = "Light Mode")
 @Composable
-fun DetailRow(
-    label: String,
-    value: String
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.primary
+fun PreviewHomeUI() {
+    DelcomTheme {
+        HomeUI(
+            statsState = ResponseInternshipStatsData(10, 5, 3, 2),
+            profileState = ProfileUIState.Loading,
+            onNavigateToInternships = {},
+            onNavigateToMyApplications = {}
         )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-    }
-}
-
-fun formatDate(dateString: String): String {
-    return try {
-        val parts = dateString.split("T")
-        val datePart = parts[0].split("-")
-        val year = datePart[0]
-        val month = when (datePart[1]) {
-            "01" -> "Januari"
-            "02" -> "Februari"
-            "03" -> "Maret"
-            "04" -> "April"
-            "05" -> "Mei"
-            "06" -> "Juni"
-            "07" -> "Juli"
-            "08" -> "Agustus"
-            "09" -> "September"
-            "10" -> "Oktober"
-            "11" -> "November"
-            "12" -> "Desember"
-            else -> datePart[1]
-        }
-        val day = datePart[2]
-        "$day $month $year"
-    } catch (e: Exception) {
-        dateString.take(10)
     }
 }

@@ -15,7 +15,8 @@ data class ResponseInternship(
 @Serializable
 data class ResponseInternshipData(
     val id: String = "",
-    val companyId: String = "",
+    val companyName: String = "",
+    val companyEmail: String = "",
     val title: String,
     val description: String,
     val category: String,
@@ -24,6 +25,9 @@ data class ResponseInternshipData(
     val requirement: String,
     val benefit: String? = null,
     val deadline: String,
+    val status: String = "Open",
+    val applicantsCount: Int = 0,
+    val submissionDate: String = "",
     val cover: String? = null,
     val createdAt: String = "",
     val updatedAt: String = ""

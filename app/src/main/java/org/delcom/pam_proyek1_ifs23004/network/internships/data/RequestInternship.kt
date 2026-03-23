@@ -4,6 +4,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class RequestInternship(
+    val companyName: String,
+    val companyEmail: String,
     val title: String,
     val description: String,
     val category: String,
@@ -11,5 +13,6 @@ data class RequestInternship(
     val duration: String,
     val requirement: String,
     val benefit: String? = null,
-    val deadline: String
+    val deadline: String,
+    val submissionDate: String
 )

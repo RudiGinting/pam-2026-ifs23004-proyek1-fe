@@ -308,25 +308,16 @@ fun ProfileUI(
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // HEADER MELENGKUNG & FOTO PROFIL
+        // Header Foto Profil
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(260.dp),
-            contentAlignment = Alignment.TopCenter
+                .padding(top = 32.dp),
+            contentAlignment = Alignment.Center
         ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(160.dp)
-                    .clip(RoundedCornerShape(bottomStart = 40.dp, bottomEnd = 40.dp))
-                    .background(MaterialTheme.colorScheme.primary)
-            )
-
-            Box(
-                modifier = Modifier
-                    .padding(top = 90.dp)
-                    .size(140.dp),
+                    .size(120.dp),
                 contentAlignment = Alignment.BottomEnd
             ) {
                 AsyncImage(
@@ -336,21 +327,18 @@ fun ProfileUI(
                     error = painterResource(R.drawable.img_placeholder),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
-                        .size(140.dp)
+                        .size(120.dp)
                         .clip(CircleShape)
-                        .background(Color.White)
-                        .border(4.dp, MaterialTheme.colorScheme.surface, CircleShape)
-                        .shadow(8.dp, CircleShape)
+                        .border(3.dp, MaterialTheme.colorScheme.primary, CircleShape)
                         .clickable { onEditPhotoClick() }
                 )
 
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(32.dp)
                         .offset(x = (-4).dp, y = (-4).dp)
-                        .shadow(4.dp, CircleShape)
                         .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.secondary)
+                        .background(MaterialTheme.colorScheme.primary)
                         .clickable { onEditPhotoClick() },
                     contentAlignment = Alignment.Center
                 ) {
@@ -358,92 +346,94 @@ fun ProfileUI(
                         imageVector = Icons.Default.CameraAlt,
                         contentDescription = "Ganti Foto",
                         tint = Color.White,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                 }
             }
         }
 
+        Spacer(modifier = Modifier.height(16.dp))
+
         Text(
             text = profile.name,
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground
         )
 
         Text(
             text = "@${profile.username}",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Medium,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp)
         )
 
         if (!profile.about.isNullOrBlank()) {
             Text(
-                text = "\"${profile.about}\"",
+                text = profile.about!!,
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 16.dp, start = 32.dp, end = 32.dp)
+                modifier = Modifier.padding(top = 12.dp, start = 32.dp, end = 32.dp)
             )
         }
 
         Spacer(modifier = Modifier.height(32.dp))
 
+        // Menu Pengaturan
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            shape = RoundedCornerShape(16.dp),
+                .padding(horizontal = 16.dp),
+            shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
-            Column(modifier = Modifier.padding(vertical = 8.dp)) {
+            Column {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { onEditProfileClick() }
-                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                        .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Default.Person,
                         contentDescription = "Edit Profil",
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(
-                        text = "Edit Informasi Profil",
+                        text = "Edit Profil",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.Normal
                     )
                 }
 
-                HorizontalDivider(
-                    modifier = Modifier.padding(horizontal = 20.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
+                Divider(
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant
                 )
 
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { onEditPasswordClick() }
-                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                        .padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Default.Lock,
                         contentDescription = "Ubah Sandi",
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(
                         text = "Ubah Kata Sandi",
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.Normal
                     )
                 }
             }
@@ -477,7 +467,7 @@ fun PreviewProfileUI() {
         ProfileUI(
             profile = ResponseUserData(
                 id = "",
-                name = "Daniel L. Tobing",
+                name = "Rudi Ginting",
                 username = "ifs23004",
                 about = "Mahasiswa S1 Informatika Institut Teknologi Del",
                 createdAt = "",

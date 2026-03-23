@@ -108,10 +108,9 @@ class InternshipViewModel @Inject constructor(
     }
 
     // ==========================================
-    // Internships
+    // Internships - PERBAIKAN: Hapus authToken dari parameter
     // ==========================================
     fun resetAndGetAllInternships(
-        authToken: String,
         search: String? = null,
         category: String? = null,
         location: String? = null
@@ -122,11 +121,10 @@ class InternshipViewModel @Inject constructor(
         currentCategory = category
         currentLocation = location
         currentInternshipsList.clear()
-        getAllInternships(authToken, search, currentCategory, currentLocation)
+        getAllInternships(search, currentCategory, currentLocation)
     }
 
     fun getAllInternships(
-        authToken: String,
         search: String? = null,
         category: String? = currentCategory,
         location: String? = currentLocation
@@ -141,7 +139,7 @@ class InternshipViewModel @Inject constructor(
 
         viewModelScope.launch(Dispatchers.IO) {
             val tmpState = runCatching {
-                repository.getInternships(authToken, search, currentPage, 10, category, location)
+                repository.getInternships(search, currentPage, 10, category, location)
             }.fold(
                 onSuccess = { response ->
                     isFetching = false
@@ -169,11 +167,11 @@ class InternshipViewModel @Inject constructor(
         }
     }
 
-    fun getInternshipById(authToken: String, internshipId: String) {
+    fun getInternshipById(internshipId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(internship = InternshipUIState.Loading) }
             val tmpState = runCatching {
-                repository.getInternshipById(authToken, internshipId)
+                repository.getInternshipById(internshipId)
             }.fold(
                 onSuccess = { response ->
                     if (response.status == "success") {
@@ -192,6 +190,8 @@ class InternshipViewModel @Inject constructor(
 
     fun postInternship(
         authToken: String,
+        companyName: String,
+        companyEmail: String,
         title: String,
         description: String,
         category: String,
@@ -199,7 +199,8 @@ class InternshipViewModel @Inject constructor(
         duration: String,
         requirement: String,
         benefit: String?,
-        deadline: String
+        deadline: String,
+        submissionDate: String
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(internshipAdd = InternshipActionUIState.Loading) }
@@ -207,6 +208,8 @@ class InternshipViewModel @Inject constructor(
                 repository.postInternship(
                     authToken = authToken,
                     RequestInternship(
+                        companyName = companyName,
+                        companyEmail = companyEmail,
                         title = title,
                         description = description,
                         category = category,
@@ -214,7 +217,8 @@ class InternshipViewModel @Inject constructor(
                         duration = duration,
                         requirement = requirement,
                         benefit = benefit,
-                        deadline = deadline
+                        deadline = deadline,
+                        submissionDate = submissionDate
                     )
                 )
             }.fold(
@@ -236,6 +240,8 @@ class InternshipViewModel @Inject constructor(
     fun putInternship(
         authToken: String,
         internshipId: String,
+        companyName: String,
+        companyEmail: String,
         title: String,
         description: String,
         category: String,
@@ -243,7 +249,8 @@ class InternshipViewModel @Inject constructor(
         duration: String,
         requirement: String,
         benefit: String?,
-        deadline: String
+        deadline: String,
+        submissionDate: String
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             _uiState.update { it.copy(internshipChange = InternshipActionUIState.Loading) }
@@ -252,6 +259,8 @@ class InternshipViewModel @Inject constructor(
                     authToken = authToken,
                     internshipId = internshipId,
                     RequestInternship(
+                        companyName = companyName,
+                        companyEmail = companyEmail,
                         title = title,
                         description = description,
                         category = category,
@@ -259,7 +268,8 @@ class InternshipViewModel @Inject constructor(
                         duration = duration,
                         requirement = requirement,
                         benefit = benefit,
-                        deadline = deadline
+                        deadline = deadline,
+                        submissionDate = submissionDate
                     )
                 )
             }.fold(

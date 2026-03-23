@@ -13,7 +13,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -52,6 +51,8 @@ fun InternshipAddScreen(
     }
 
     fun onSave(
+        companyName: String,
+        companyEmail: String,
         title: String,
         description: String,
         category: String,
@@ -59,13 +60,16 @@ fun InternshipAddScreen(
         duration: String,
         requirement: String,
         benefit: String?,
-        deadline: String
+        deadline: String,
+        submissionDate: String
     ) {
         if (authToken == null) return
         isLoading = true
 
         internshipViewModel.postInternship(
             authToken = authToken!!,
+            companyName = companyName,
+            companyEmail = companyEmail,
             title = title,
             description = description,
             category = category,
@@ -73,7 +77,8 @@ fun InternshipAddScreen(
             duration = duration,
             requirement = requirement,
             benefit = benefit,
-            deadline = deadline
+            deadline = deadline,
+            submissionDate = submissionDate
         )
     }
 
@@ -117,8 +122,10 @@ fun InternshipAddScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InternshipAddUI(
-    onSave: (String, String, String, String, String, String, String?, String) -> Unit
+    onSave: (String, String, String, String, String, String, String, String, String?, String, String) -> Unit
 ) {
+    var companyName by remember { mutableStateOf("") }
+    var companyEmail by remember { mutableStateOf("") }
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("") }
@@ -127,6 +134,7 @@ fun InternshipAddUI(
     var requirement by remember { mutableStateOf("") }
     var benefit by remember { mutableStateOf("") }
     var deadline by remember { mutableStateOf("") }
+    var submissionDate by remember { mutableStateOf("") }
 
     var expandedCategory by remember { mutableStateOf(false) }
     var expandedLocation by remember { mutableStateOf(false) }
@@ -149,13 +157,51 @@ fun InternshipAddUI(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Informasi Lowongan",
+                    text = "Informasi Perusahaan",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
 
-                // Judul Lowongan
+                OutlinedTextField(
+                    value = companyName,
+                    onValueChange = { companyName = it },
+                    label = { Text("Nama Perusahaan") },
+                    leadingIcon = { Icon(Icons.Default.Business, contentDescription = null) },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+                )
+
+                OutlinedTextField(
+                    value = companyEmail,
+                    onValueChange = { companyEmail = it },
+                    label = { Text("Email Perusahaan") },
+                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+                )
+
+                Text(
+                    text = "Informasi Lowongan",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+
+                OutlinedTextField(
+                    value = submissionDate,
+                    onValueChange = { submissionDate = it },
+                    label = { Text("Tanggal Pengajuan") },
+                    placeholder = { Text("Contoh: 2026-03-21") },
+                    leadingIcon = { Icon(Icons.Default.DateRange, contentDescription = null) },
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+                )
+
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
@@ -166,7 +212,6 @@ fun InternshipAddUI(
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
                 )
 
-                // Kategori (Dropdown)
                 ExposedDropdownMenuBox(
                     expanded = expandedCategory,
                     onExpandedChange = { expandedCategory = !expandedCategory },
@@ -180,7 +225,6 @@ fun InternshipAddUI(
                         leadingIcon = { Icon(Icons.Default.Category, contentDescription = null) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCategory) },
                         shape = RoundedCornerShape(12.dp),
-                        colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                         modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
                     ExposedDropdownMenu(
@@ -199,7 +243,6 @@ fun InternshipAddUI(
                     }
                 }
 
-                // Lokasi (Dropdown)
                 ExposedDropdownMenuBox(
                     expanded = expandedLocation,
                     onExpandedChange = { expandedLocation = !expandedLocation },
@@ -213,7 +256,6 @@ fun InternshipAddUI(
                         leadingIcon = { Icon(Icons.Default.LocationOn, contentDescription = null) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedLocation) },
                         shape = RoundedCornerShape(12.dp),
-                        colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
                         modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
                     ExposedDropdownMenu(
@@ -232,7 +274,6 @@ fun InternshipAddUI(
                     }
                 }
 
-                // Durasi
                 OutlinedTextField(
                     value = duration,
                     onValueChange = { duration = it },
@@ -244,7 +285,6 @@ fun InternshipAddUI(
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
                 )
 
-                // Deadline
                 OutlinedTextField(
                     value = deadline,
                     onValueChange = { deadline = it },
@@ -256,7 +296,6 @@ fun InternshipAddUI(
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
                 )
 
-                // Benefit
                 OutlinedTextField(
                     value = benefit,
                     onValueChange = { benefit = it },
@@ -267,7 +306,6 @@ fun InternshipAddUI(
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
                 )
 
-                // Kualifikasi
                 OutlinedTextField(
                     value = requirement,
                     onValueChange = { requirement = it },
@@ -279,7 +317,6 @@ fun InternshipAddUI(
                     minLines = 2
                 )
 
-                // Deskripsi
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
@@ -297,14 +334,17 @@ fun InternshipAddUI(
 
         Button(
             onClick = {
-                if (title.isBlank() || description.isBlank() || category.isBlank() ||
-                    location.isBlank() || duration.isBlank() || requirement.isBlank() ||
-                    deadline.isBlank()
+                if (companyName.isBlank() || companyEmail.isBlank() || title.isBlank() ||
+                    description.isBlank() || category.isBlank() || location.isBlank() ||
+                    duration.isBlank() || requirement.isBlank() || deadline.isBlank() ||
+                    submissionDate.isBlank()
                 ) {
-                    // Show error via snackbar
                     return@Button
                 }
-                onSave(title, description, category, location, duration, requirement, benefit.takeIf { it.isNotBlank() }, deadline)
+                onSave(
+                    companyName, companyEmail, title, description, category, location,
+                    duration, requirement, benefit.takeIf { it.isNotBlank() }, deadline, submissionDate
+                )
             },
             modifier = Modifier
                 .fillMaxWidth()

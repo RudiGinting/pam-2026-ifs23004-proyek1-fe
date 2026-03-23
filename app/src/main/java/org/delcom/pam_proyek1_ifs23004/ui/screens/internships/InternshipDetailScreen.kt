@@ -17,7 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush  // TAMBAHKAN IMPORT INI
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -63,7 +63,7 @@ fun InternshipDetailScreen(
         }
 
         authToken = (uiStateAuth.auth as AuthUIState.Success).data.authToken
-        internshipViewModel.getInternshipById(authToken!!, internshipId)
+        internshipViewModel.getInternshipById(internshipId)
     }
 
     LaunchedEffect(uiStateInternship.internship) {
@@ -111,6 +111,8 @@ fun InternshipDetailScreen(
         return
     }
 
+    val safeInternship = internship!!
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -123,8 +125,8 @@ fun InternshipDetailScreen(
         )
         Box(modifier = Modifier.weight(1f)) {
             InternshipDetailUI(
-                internship = internship!!,
-                onApplyClick = { showApplyDialog = true }  // PERBAIKAN: hanya set showApplyDialog = true
+                internship = safeInternship,
+                onApplyClick = { showApplyDialog = true }
             )
         }
         BottomNavComponent(navController = navController)
@@ -141,7 +143,7 @@ fun InternshipDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = internship!!.title,
+                        text = safeInternship.title,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -160,7 +162,7 @@ fun InternshipDetailScreen(
             },
             confirmButton = {
                 Button(
-                    onClick = { onApply() },  // PERBAIKAN: panggil onApply() di dalam lambda
+                    onClick = { onApply() },
                     enabled = motivation.isNotBlank()
                 ) {
                     Text("Kirim Lamaran")
@@ -180,6 +182,21 @@ fun InternshipDetailUI(
     internship: ResponseInternshipData,
     onApplyClick: () -> Unit
 ) {
+    // Null safety untuk semua field
+    val title = internship.title ?: "Tanpa Judul"
+    val status = internship.status ?: "Open"
+    val companyName = internship.companyName ?: "Perusahaan"
+    val companyEmail = internship.companyEmail ?: "-"
+    val submissionDate = internship.submissionDate ?: "-"
+    val category = internship.category ?: "-"
+    val location = internship.location ?: "-"
+    val duration = internship.duration ?: "-"
+    val requirement = internship.requirement ?: "-"
+    val description = internship.description ?: "-"
+    val deadline = internship.deadline ?: "-"
+    val applicantsCount = internship.applicantsCount ?: 0
+    val benefit = internship.benefit
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -195,7 +212,7 @@ fun InternshipDetailUI(
         ) {
             AsyncImage(
                 model = ToolsHelper.getInternshipImage(internship.id, internship.updatedAt),
-                contentDescription = internship.title,
+                contentDescription = title,
                 placeholder = painterResource(R.drawable.img_placeholder),
                 error = painterResource(R.drawable.img_placeholder),
                 contentScale = ContentScale.Crop,
@@ -207,7 +224,7 @@ fun InternshipDetailUI(
                     .fillMaxWidth()
                     .height(60.dp)
                     .background(
-                        Brush.verticalGradient(  // PERBAIKAN: Brush sudah diimport
+                        Brush.verticalGradient(
                             colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f))
                         )
                     )
@@ -216,9 +233,9 @@ fun InternshipDetailUI(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Judul dan Info
+        // Judul
         Text(
-            text = internship.title,
+            text = title,
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
@@ -228,42 +245,83 @@ fun InternshipDetailUI(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
+        // Status Chip
+        val statusColor = when (status.lowercase()) {
+            "closed" -> MaterialTheme.colorScheme.errorContainer
+            else -> MaterialTheme.colorScheme.secondaryContainer
+        }
+        val statusTextColor = when (status.lowercase()) {
+            "closed" -> MaterialTheme.colorScheme.onErrorContainer
+            else -> MaterialTheme.colorScheme.onSecondaryContainer
+        }
+
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .background(statusColor)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
-            // PERBAIKAN: Ganti Chip dengan AssistChip
-            AssistChip(
-                onClick = {},
-                label = { Text(internship.category) },
-                colors = AssistChipDefaults.assistChipColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    labelColor = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            AssistChip(
-                onClick = {},
-                label = { Text(internship.location) },
-                colors = AssistChipDefaults.assistChipColors(
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                    labelColor = MaterialTheme.colorScheme.onTertiaryContainer
-                )
+            Text(
+                text = status,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = statusTextColor
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        Text(
-            text = "Durasi: ${internship.duration} • Deadline: ${internship.deadline}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        // Informasi Perusahaan
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(2.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    text = "🏢 Informasi Perusahaan",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = companyName,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = companyEmail,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "📅 Tanggal Pengajuan: $submissionDate",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "👥 $applicantsCount Pelamar",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        // Detail Card
+        // Detail Lowongan
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -276,7 +334,7 @@ fun InternshipDetailUI(
                 DetailSection(
                     icon = Icons.Filled.Description,
                     title = "Deskripsi Pekerjaan",
-                    content = internship.description
+                    content = description
                 )
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
@@ -284,15 +342,23 @@ fun InternshipDetailUI(
                 DetailSection(
                     icon = Icons.Filled.CheckCircle,
                     title = "Kualifikasi",
-                    content = internship.requirement
+                    content = requirement
                 )
 
-                if (!internship.benefit.isNullOrBlank()) {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+                DetailSection(
+                    icon = Icons.Filled.Schedule,
+                    title = "Durasi",
+                    content = duration
+                )
+
+                if (!benefit.isNullOrBlank()) {
                     HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
                     DetailSection(
                         icon = Icons.Filled.Star,
                         title = "Benefit",
-                        content = internship.benefit!!
+                        content = benefit!!
                     )
                 }
             }
@@ -300,22 +366,51 @@ fun InternshipDetailUI(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Tombol Apply
-        Button(
-            onClick = onApplyClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .height(56.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            )
-        ) {
-            Icon(Icons.Filled.Send, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Lamar Sekarang", fontWeight = FontWeight.Bold)
+        // Tombol Apply (hanya jika status Open)
+        if (status == "Open") {
+            Button(
+                onClick = onApplyClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .height(56.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Icon(Icons.Filled.Send, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Lamar Sekarang", fontWeight = FontWeight.Bold)
+            }
+        } else {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                )
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Cancel,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Lowongan Sudah Ditutup",
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(80.dp))
